@@ -41,3 +41,10 @@ export function toggleFavoriteChat(chatId) {
         method: "PATCH",
     });
 }
+
+export function renameChat(chatId, title) {
+    return apiRequest(`/chats/${chatId}/title`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+    });
+}

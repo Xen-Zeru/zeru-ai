@@ -3,7 +3,6 @@ import {
     GraduationCap,
     Lightbulb,
     Network,
-    Sparkles,
 } from "lucide-react";
 
 const suggestions = [
@@ -52,22 +51,11 @@ export default function WelcomeScreen({
         >
             <div className="w-full max-w-3xl text-center">
 
-                <div
-                    className="
-            mx-auto
-            flex h-16 w-16
-            items-center justify-center
-            rounded-2xl
-            bg-gradient-to-br
-            from-violet-500
-            to-indigo-600
-            text-white
-            shadow-2xl
-            shadow-violet-500/20
-          "
-                >
-                    <Sparkles size={28} />
-                </div>
+                <img
+                    src="/zeru.png"
+                    alt="Zeru AI"
+                    className="mx-auto h-16 w-16 rounded-full bg-white p-1 object-cover shadow-2xl shadow-violet-500/20 border border-zinc-200/50 dark:border-zinc-800"
+                />
 
                 <p
                     className="

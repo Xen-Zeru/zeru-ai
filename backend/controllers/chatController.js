@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 
-const { generateResponse } = require("../services/chatService");
+const { generateResponse, generateTitle } = require("../services/chatService");
 
 const Chat = require("../models/Chat");
 const GuestUsage = require("../models/GuestUsage");
@@ -41,9 +41,10 @@ const handleChat = async (req, res) => {
       }
 
       if (!chat) {
+        const title = await generateTitle(message);
         chat = await Chat.create({
           user: req.user.id,
-          title: message.substring(0, 50),
+          title,
           messages: [],
         });
       }
@@ -223,10 +224,36 @@ const toggleFavorite = async (req, res) => {
   }
 };
 
+const updateChatTitle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Title is required." });
+    }
+
+    const chat = await Chat.findOne({ _id: id, user: req.user.id });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+
+    chat.title = title.trim();
+    await chat.save();
+
+    res.json({ chat });
+  } catch (error) {
+    console.error("Update title error:", error);
+    res.status(500).json({ error: "Unable to update conversation title." });
+  }
+};
+
 module.exports = {
   handleChat,
   getUserChats,
   getSingleChat,
   deleteSingleChat,
   toggleFavorite,
+  updateChatTitle,
 };

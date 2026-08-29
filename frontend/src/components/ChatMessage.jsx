@@ -15,6 +15,21 @@ function checkIsImage(fileName, fileType) {
     return false;
 }
 
+function stripMarkdown(text) {
+    if (!text) return "";
+    return text
+        .replace(/```[a-z]*\n?/gi, "")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+        .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/^\s*>\s+/gm, "")
+        .replace(/^\s*[*+-]\s+/gm, "• ")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/^(-{3,}|\*{3,}|_{3,})$/gm, "")
+        .trim();
+}
+
 export default function ChatMessage({
     message,
 }) {
@@ -34,9 +49,11 @@ export default function ChatMessage({
 
     const copyMessage = async () => {
         try {
-            await navigator.clipboard.writeText(
-                message.content
-            );
+            const textToCopy = isUser
+                ? cleanContent || message.content
+                : stripMarkdown(message.content);
+
+            await navigator.clipboard.writeText(textToCopy);
 
             setCopied(true);
 
@@ -117,7 +134,7 @@ export default function ChatMessage({
           group
 
           ${isUser
-                                ? `
+                            ? `
                 rounded-2xl
                 rounded-br-md
                 bg-gradient-to-br
@@ -128,10 +145,10 @@ export default function ChatMessage({
                 shadow-lg
                 shadow-violet-500/10
               `
-                                : `
+                            : `
                 min-w-0
               `
-                            }
+                        }
         `}
                 >
                     <div
@@ -155,90 +172,88 @@ export default function ChatMessage({
                                     h1: ({ children, ...props }) => (
                                         <h1 className="mt-3 mb-1.5 text-lg font-bold text-zinc-900 dark:text-white" {...props}>{children}</h1>
                                     ),
-                                h2: ({ children, ...props }) => (
-                                    <h2 className="mt-3 mb-1.5 text-base font-bold text-zinc-900 dark:text-white" {...props}>{children}</h2>
-                                ),
-                                h3: ({ children, ...props }) => (
-                                    <h3 className="mt-3 mb-1.5 text-sm font-bold text-zinc-900 dark:text-white" {...props}>{children}</h3>
-                                ),
-                                p: ({ children, ...props }) => <p className="mb-2 last:mb-0" {...props}>{children}</p>,
-                                strong: ({ children, ...props }) => (
-                                    <strong className="font-semibold text-zinc-900 dark:text-white" {...props}>{children}</strong>
-                                ),
-                                ul: ({ children, ...props }) => (
-                                    <ul className="mb-2 ml-4 list-disc space-y-0.5" {...props}>{children}</ul>
-                                ),
-                                ol: ({ children, ...props }) => (
-                                    <ol className="mb-2 ml-4 list-decimal space-y-0.5" {...props}>{children}</ol>
-                                ),
-                                li: ({ children, ...props }) => <li className="leading-6" {...props}>{children}</li>,
-                                code: ({ children, ...props }) => (
-                                    <code
-                                        className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-violet-600 dark:bg-zinc-800 dark:text-violet-300"
-                                        {...props}
-                                    >
-                                        {children}
-                                    </code>
-                                ),
-                                pre: ({ children, ...props }) => (
-                                    <pre
-                                        className="my-3 overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-900 p-3 font-mono text-xs text-zinc-100 dark:border-zinc-800"
-                                        {...props}
-                                    >
-                                        {children}
-                                    </pre>
-                                ),
-                                hr: ({ ...props }) => (
-                                    <hr className="my-4 border-zinc-200 dark:border-zinc-800" {...props} />
-                                ),
-                                blockquote: ({ children, ...props }) => (
-                                    <blockquote className="my-3 border-l-2 border-violet-500 pl-3 italic text-zinc-600 dark:text-zinc-400" {...props}>{children}</blockquote>
-                                ),
-                            }}
-                        >
-                            {message.content}
-                        </ReactMarkdown>
+                                    h2: ({ children, ...props }) => (
+                                        <h2 className="mt-3 mb-1.5 text-base font-bold text-zinc-900 dark:text-white" {...props}>{children}</h2>
+                                    ),
+                                    h3: ({ children, ...props }) => (
+                                        <h3 className="mt-3 mb-1.5 text-sm font-bold text-zinc-900 dark:text-white" {...props}>{children}</h3>
+                                    ),
+                                    p: ({ children, ...props }) => <p className="mb-2 last:mb-0" {...props}>{children}</p>,
+                                    strong: ({ children, ...props }) => (
+                                        <strong className="font-semibold text-zinc-900 dark:text-white" {...props}>{children}</strong>
+                                    ),
+                                    ul: ({ children, ...props }) => (
+                                        <ul className="mb-2 ml-4 list-disc space-y-0.5" {...props}>{children}</ul>
+                                    ),
+                                    ol: ({ children, ...props }) => (
+                                        <ol className="mb-2 ml-4 list-decimal space-y-0.5" {...props}>{children}</ol>
+                                    ),
+                                    li: ({ children, ...props }) => <li className="leading-6" {...props}>{children}</li>,
+                                    code: ({ children, ...props }) => (
+                                        <code
+                                            className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-violet-600 dark:bg-zinc-800 dark:text-violet-300"
+                                            {...props}
+                                        >
+                                            {children}
+                                        </code>
+                                    ),
+                                    pre: ({ children, ...props }) => (
+                                        <pre
+                                            className="my-3 overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-900 p-3 font-mono text-xs text-zinc-100 dark:border-zinc-800"
+                                            {...props}
+                                        >
+                                            {children}
+                                        </pre>
+                                    ),
+                                    hr: ({ ...props }) => (
+                                        <hr className="my-4 border-zinc-200 dark:border-zinc-800" {...props} />
+                                    ),
+                                    blockquote: ({ children, ...props }) => (
+                                        <blockquote className="my-3 border-l-2 border-violet-500 pl-3 italic text-zinc-600 dark:text-zinc-400" {...props}>{children}</blockquote>
+                                    ),
+                                }}
+                            >
+                                {message.content}
+                            </ReactMarkdown>
                         )}
                     </div>
 
-                    {!isUser && (
-                        <button
-                            type="button"
-                            onClick={copyMessage}
-                            className="
-              mt-2
-              flex
-              items-center
-              gap-1.5
-              rounded-lg
-              px-2
-              py-1
-              text-[10px]
-              text-zinc-400
-              opacity-0
-              transition
-              hover:bg-zinc-100
-              hover:text-zinc-600
-              group-hover:opacity-100
-
-              dark:hover:bg-zinc-900
-              dark:hover:text-zinc-300
-            "
-                        >
-                            {copied ? (
-                                <>
-                                    <Check size={12} />
-                                    Copied
-                                </>
-                            ) : (
-                                <>
-                                    <Copy size={12} />
-                                    Copy
-                                </>
-                            )}
-                        </button>
-                    )}
                 </div>
+
+                {/* Copy button after message */}
+                <button
+                    type="button"
+                    onClick={copyMessage}
+                    className={`
+                        mt-0.5
+                        inline-flex
+                        items-center
+                        gap-1.5
+                        rounded-lg
+                        px-2
+                        py-1
+                        text-[10px]
+                        font-medium
+                        transition
+                        ${isUser
+                            ? "self-end text-zinc-400 hover:bg-zinc-200/50 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-300"
+                            : "self-start text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+                        }
+                    `}
+                    title="Copy message text"
+                >
+                    {copied ? (
+                        <>
+                            <Check size={12} className="text-emerald-500" />
+                            <span className="text-emerald-500 font-semibold">Copied</span>
+                        </>
+                    ) : (
+                        <>
+                            <Copy size={12} />
+                            <span>Copy</span>
+                        </>
+                    )}
+                </button>
             </div>
 
             {/* User avatar */}

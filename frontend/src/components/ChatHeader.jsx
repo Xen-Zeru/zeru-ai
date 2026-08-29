@@ -51,7 +51,7 @@ export default function ChatHeader({
                 <img
                     src="/zeru.png"
                     alt="Zeru AI"
-                    className="h-9 w-9 rounded-xl"
+                    className="h-9 w-9 rounded-full bg-white p-0.5 object-cover shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800"
                 />
 
                 <div>

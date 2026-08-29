@@ -27,6 +27,7 @@ import {
   deleteChat,
   sendMessage,
   toggleFavoriteChat,
+  renameChat,
 } from "./services/chatApi";
 
 function App() {
@@ -221,6 +222,20 @@ function App() {
     }
   };
 
+  const handleRenameChat = async (chatId, newTitle) => {
+    setChats((prev) =>
+      prev.map((c) => (c._id === chatId ? { ...c, title: newTitle } : c))
+    );
+
+    if (isAuthenticated) {
+      try {
+        await renameChat(chatId, newTitle);
+      } catch (error) {
+        console.warn("Could not rename chat on backend:", error.message);
+      }
+    }
+  };
+
   /*
    * Send message
    */
@@ -396,6 +411,7 @@ function App() {
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
         onToggleFavorite={handleToggleFavorite}
+        onRenameChat={handleRenameChat}
         onLogin={() => {
           setRegisterOpen(false);
           setLoginOpen(true);

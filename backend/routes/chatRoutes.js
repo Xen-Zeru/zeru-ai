@@ -6,6 +6,7 @@ const {
     getSingleChat,
     deleteSingleChat,
     toggleFavorite,
+    updateChatTitle,
 } = require("../controllers/chatController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -34,5 +35,6 @@ router.get("/", protect, getUserChats);
 router.get("/:id", protect, getSingleChat);
 router.delete("/:id", protect, deleteSingleChat);
 router.patch("/:id/favorite", protect, toggleFavorite);
+router.patch("/:id/title", protect, updateChatTitle);
 
 module.exports = router;

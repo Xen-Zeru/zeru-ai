@@ -1,15 +1,17 @@
 import { useState } from "react";
 import {
-    Clock3,
     MessageSquare,
     Plus,
     Search,
     Sparkles,
-    Star,
+    Pin,
     Trash2,
     X,
     LogOut,
-    ChevronLeft,
+    ChevronDown,
+    ChevronRight,
+    MoreHorizontal,
+    Pencil,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -20,6 +22,7 @@ export default function Sidebar({
     onSelectChat,
     onDeleteChat,
     onToggleFavorite,
+    onRenameChat,
     onLogin,
     onRegister,
     onLogoutClick,
@@ -27,23 +30,22 @@ export default function Sidebar({
     onClose,
 }) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [filterMode, setFilterMode] = useState("all");
+    const [pinnedMinimized, setPinnedMinimized] = useState(false);
     const [minimized, setMinimized] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const [editingChatId, setEditingChatId] = useState(null);
+    const [editingTitle, setEditingTitle] = useState("");
 
-    const displayedChats = chats.filter((chat) => {
-        const titleMatch =
+    const searchFilteredChats = chats.filter((chat) => {
+        return (
             !searchQuery.trim() ||
             (chat.title &&
-                chat.title.toLowerCase().includes(searchQuery.toLowerCase()));
-
-        if (!titleMatch) return false;
-
-        if (filterMode === "favorites") {
-            return !!chat.isFavorite;
-        }
-
-        return true;
+                chat.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
     });
+
+    const pinnedChats = searchFilteredChats.filter((chat) => !!chat.isFavorite);
+    const unpinnedChats = searchFilteredChats.filter((chat) => !chat.isFavorite);
 
     return (
         <>
@@ -91,10 +93,10 @@ export default function Sidebar({
                     <div className="flex items-center gap-3">
 
                         <img
-                    src="/zeru.png"
-                    alt="Zeru AI"
-                    className="h-9 w-9 rounded-xl"
-                />
+                            src="/zeru.png"
+                            alt="Zeru AI"
+                            className="h-9 w-9 rounded-full bg-white p-0.5 object-cover shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800"
+                        />
 
                         <div>
                             <h1
@@ -138,7 +140,6 @@ export default function Sidebar({
                     <button
                         type="button"
                         onClick={() => {
-                            setFilterMode("all");
                             onNewChat();
                             onClose();
                         }}
@@ -213,117 +214,200 @@ export default function Sidebar({
                     </div>
                 </div>
 
-                {/* Quick access */}
-                <div className="px-4 pt-6">
-
-                    <p
-                        className="
-              px-2
-              text-[10px]
-              font-semibold
-              uppercase
-              tracking-[0.16em]
-              text-zinc-400
-            "
-                    >
-                        Quick Access
-                    </p>
-
-                    <div className="mt-2 space-y-1">
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setFilterMode("all");
-                                onNewChat();
-                                onClose();
-                            }}
-                            className={`
-                flex w-full items-center gap-3
-                rounded-xl
-                px-3 py-2.5
-                text-left
-                text-xs
-                font-medium
-                transition
-                ${filterMode === "all"
-                                    ? "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300 font-semibold"
-                                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
-                                }
-              `}
-                        >
-                            <MessageSquare size={16} />
-                            New conversation
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setFilterMode("all");
-                                if (chats.length > 0) {
-                                    onSelectChat(chats[0]._id);
-                                    onClose();
-                                }
-                            }}
-                            className="
-                flex w-full items-center gap-3
-                rounded-xl
-                px-3 py-2.5
-                text-left
-                text-xs
-                text-zinc-600
-                hover:bg-zinc-100
-                dark:text-zinc-400
-                dark:hover:bg-zinc-900
-                transition
-              "
-                        >
-                            <Clock3 size={16} />
-                            Recent chats
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setFilterMode((curr) =>
-                                    curr === "favorites" ? "all" : "favorites"
-                                );
-                            }}
-                            className={`
-                flex w-full items-center justify-between
-                rounded-xl
-                px-3 py-2.5
-                text-left
-                text-xs
-                transition
-                ${filterMode === "favorites"
-                                    ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300 font-semibold"
-                                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
-                                }
-              `}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Star
-                                    size={16}
-                                    className={
-                                        filterMode === "favorites"
-                                            ? "fill-amber-400 text-amber-500"
-                                            : ""
-                                    }
-                                />
-                                Favorites
-                            </div>
-
-                            {chats.filter((c) => c.isFavorite).length > 0 && (
-                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
-                                    {chats.filter((c) => c.isFavorite).length}
+                {/* Pinned Section */}
+                <div className="px-4 pt-5">
+                    <div className="flex items-center justify-between px-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+                            Pinned
+                        </p>
+                        <div className="flex items-center gap-2">
+                            {user && (
+                                <span className="text-[10px] text-zinc-500">
+                                    {pinnedChats.length}
                                 </span>
                             )}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() => setPinnedMinimized(!pinnedMinimized)}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                                title={pinnedMinimized ? "Reveal pinned conversations" : "Minimize pinned conversations"}
+                            >
+                                {pinnedMinimized ? (
+                                    <ChevronRight size={14} />
+                                ) : (
+                                    <ChevronDown size={14} />
+                                )}
+                            </button>
+                        </div>
                     </div>
+
+                    {!pinnedMinimized && (
+                        <div className="mt-2 space-y-1">
+                            {pinnedChats.length === 0 && (
+                                <div className="rounded-xl border border-dashed border-zinc-200 p-3 text-center dark:border-zinc-800">
+                                    <Pin size={16} className="mx-auto text-zinc-300 dark:text-zinc-700" />
+                                    <p className="mt-1 text-[11px] text-zinc-400">
+                                        No pinned chats yet.
+                                    </p>
+                                </div>
+                            )}
+
+                            {pinnedChats.map((chat) => (
+                                <div
+                                    key={chat._id}
+                                    className={`
+                                        group
+                                        relative
+                                        flex items-center gap-1.5
+                                        rounded-xl
+                                        px-2 py-0.5
+                                        transition
+
+                                        ${activeChatId === chat._id
+                                            ? "bg-violet-50 dark:bg-violet-500/10"
+                                            : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                                        }
+                                    `}
+                                >
+                                    <MessageSquare
+                                        size={16}
+                                        className={`shrink-0 ml-1 transition-colors ${
+                                            activeChatId === chat._id
+                                                ? "text-violet-600 dark:text-violet-400"
+                                                : "text-amber-500 dark:text-amber-400"
+                                        }`}
+                                    />
+
+                                    {editingChatId === chat._id ? (
+                                        <form
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                if (editingTitle.trim() && onRenameChat) {
+                                                    onRenameChat(chat._id, editingTitle.trim());
+                                                }
+                                                setEditingChatId(null);
+                                            }}
+                                            className="min-w-0 flex-1 px-1 py-1"
+                                        >
+                                            <input
+                                                type="text"
+                                                autoFocus
+                                                value={editingTitle}
+                                                onChange={(e) => setEditingTitle(e.target.value)}
+                                                onBlur={() => {
+                                                    if (editingTitle.trim() && editingTitle.trim() !== chat.title && onRenameChat) {
+                                                        onRenameChat(chat._id, editingTitle.trim());
+                                                    }
+                                                    setEditingChatId(null);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Escape") setEditingChatId(null);
+                                                }}
+                                                className="w-full rounded-md border border-violet-500 bg-white px-2 py-1 text-xs text-zinc-900 shadow-sm outline-none dark:bg-zinc-800 dark:text-zinc-100"
+                                            />
+                                        </form>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onSelectChat(chat._id);
+                                                onClose();
+                                            }}
+                                            title={chat.title || "New conversation"}
+                                            className="min-w-0 flex-1 py-2 text-left"
+                                        >
+                                            <span
+                                                className={`block truncate text-xs ${
+                                                    activeChatId === chat._id
+                                                        ? "font-semibold text-violet-700 dark:text-violet-300"
+                                                        : "text-zinc-600 dark:text-zinc-400"
+                                                }`}
+                                            >
+                                                {chat.title || "New conversation"}
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    <div className="relative mr-1 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenMenuId(openMenuId === chat._id ? null : chat._id);
+                                            }}
+                                            className={`
+                                                flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition
+                                                ${openMenuId === chat._id
+                                                    ? "flex bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                                                    : "hidden group-hover:flex hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                                }
+                                            `}
+                                            title="More options"
+                                        >
+                                            <MoreHorizontal size={15} />
+                                        </button>
+
+                                        {openMenuId === chat._id && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenMenuId(null);
+                                                    }}
+                                                />
+
+                                                <div
+                                                    className="absolute right-0 top-8 z-50 w-36 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingChatId(chat._id);
+                                                            setEditingTitle(chat.title || "New conversation");
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    >
+                                                        <Pencil size={13} className="text-zinc-400" />
+                                                        Rename
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (onToggleFavorite) onToggleFavorite(chat._id);
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                    >
+                                                        <Pin size={13} className="text-amber-500" />
+                                                        Unpinned
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            onDeleteChat(chat._id);
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                        className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* Chat history */}
+                {/* Conversations Section */}
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-6">
 
                     <div className="flex items-center justify-between px-2">
@@ -336,42 +420,34 @@ export default function Sidebar({
                 text-zinc-400
               "
                         >
-                            {filterMode === "favorites"
-                                ? "Favorite Conversations"
-                                : "Conversations"}
+                            Conversations
                         </p>
 
                         <div className="flex items-center gap-2">
                             {user && (
                                 <span className="text-[10px] text-zinc-500">
-                                    {displayedChats.length}
+                                    {unpinnedChats.length}
                                 </span>
                             )}
                             <button
                                 type="button"
                                 onClick={() => setMinimized(!minimized)}
                                 className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
-                                title="Minimize"
+                                title={minimized ? "Reveal conversations" : "Minimize conversations"}
                             >
-                                <ChevronLeft size={14} className={`transition-transform ${ minimized ? 'rotate-180' : ''}`} />
+                                {minimized ? (
+                                    <ChevronRight size={14} />
+                                ) : (
+                                    <ChevronDown size={14} />
+                                )}
                             </button>
                         </div>
                     </div>
 
-                    <div className="mt-2 space-y-1">
+                    {!minimized && (
+                        <div className="mt-2 space-y-1">
 
-                        {filterMode === "favorites" &&
-                            displayedChats.length === 0 && (
-                                <div className="rounded-xl border border-dashed border-zinc-200 p-4 text-center dark:border-zinc-800">
-                                    <Star size={18} className="mx-auto text-amber-400" />
-                                    <p className="mt-2 text-[11px] text-zinc-400">
-                                        No favorite chats yet.<br />Hover over any chat and click the star to favorite it!
-                                    </p>
-                                </div>
-                            )}
-
-                        {filterMode !== "favorites" &&
-                            displayedChats.length === 0 && (
+                        {unpinnedChats.length === 0 && (
                                 <div
                                     className="
                   rounded-xl
@@ -407,116 +483,167 @@ export default function Sidebar({
                                 </div>
                             )}
 
-                        {displayedChats.map((chat) => (
+                        {unpinnedChats.map((chat) => (
                             <div
                                 key={chat._id}
                                 className={`
-                  group
-                  flex items-center gap-1
-                  rounded-xl
-                  transition
+                                    group
+                                    relative
+                                    flex items-center gap-1.5
+                                    rounded-xl
+                                    px-2 py-0.5
+                                    transition
 
-                  ${activeChatId === chat._id
+                                    ${activeChatId === chat._id
                                         ? "bg-violet-50 dark:bg-violet-500/10"
                                         : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
                                     }
-                `}
+                                `}
                             >
-                                {/* Selected indicator circle */}
-                                <div className="flex h-6 w-6 shrink-0 items-center justify-center ml-1">
-                                    {activeChatId === chat._id ? (
-                                        <div className="h-2.5 w-2.5 rounded-full bg-violet-500"></div>
-                                    ) : (
-                                        <div className="h-2 w-2 rounded-full border border-zinc-300 dark:border-zinc-600"></div>
+                                {/* Conversation Icon */}
+                                <MessageSquare
+                                    size={16}
+                                    className={`shrink-0 ml-1 transition-colors ${
+                                        activeChatId === chat._id
+                                            ? "text-violet-600 dark:text-violet-400"
+                                            : "text-zinc-400 dark:text-zinc-500"
+                                    }`}
+                                />
+
+                                {/* Title / Inline Rename Input */}
+                                {editingChatId === chat._id ? (
+                                    <form
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            if (editingTitle.trim() && onRenameChat) {
+                                                onRenameChat(chat._id, editingTitle.trim());
+                                            }
+                                            setEditingChatId(null);
+                                        }}
+                                        className="min-w-0 flex-1 px-1 py-1"
+                                    >
+                                        <input
+                                            type="text"
+                                            autoFocus
+                                            value={editingTitle}
+                                            onChange={(e) => setEditingTitle(e.target.value)}
+                                            onBlur={() => {
+                                                if (editingTitle.trim() && editingTitle.trim() !== chat.title && onRenameChat) {
+                                                    onRenameChat(chat._id, editingTitle.trim());
+                                                }
+                                                setEditingChatId(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Escape") {
+                                                    setEditingChatId(null);
+                                                }
+                                            }}
+                                            className="w-full rounded-md border border-violet-500 bg-white px-2 py-1 text-xs text-zinc-900 shadow-sm outline-none dark:bg-zinc-800 dark:text-zinc-100"
+                                        />
+                                    </form>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onSelectChat(chat._id);
+                                            onClose();
+                                        }}
+                                        title={chat.title || "New conversation"}
+                                        className="min-w-0 flex-1 py-2 text-left"
+                                    >
+                                        <span
+                                            className={`block truncate text-xs ${
+                                                activeChatId === chat._id
+                                                    ? "font-semibold text-violet-700 dark:text-violet-300"
+                                                    : "text-zinc-600 dark:text-zinc-400"
+                                            }`}
+                                        >
+                                            {chat.title || "New conversation"}
+                                        </span>
+                                    </button>
+                                )}
+
+                                {/* 3-dots Action Menu */}
+                                <div className="relative mr-1 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenMenuId(openMenuId === chat._id ? null : chat._id);
+                                        }}
+                                        className={`
+                                            flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 transition
+                                            ${openMenuId === chat._id
+                                                ? "flex bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                                                : "hidden group-hover:flex hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                            }
+                                        `}
+                                        title="More options"
+                                    >
+                                        <MoreHorizontal size={15} />
+                                    </button>
+
+                                    {openMenuId === chat._id && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setOpenMenuId(null);
+                                                }}
+                                            />
+
+                                            <div
+                                                className="absolute right-0 top-8 z-50 w-36 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {/* Rename */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingChatId(chat._id);
+                                                        setEditingTitle(chat.title || "New conversation");
+                                                        setOpenMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                >
+                                                    <Pencil size={13} className="text-zinc-400" />
+                                                    Rename
+                                                </button>
+
+                                                {/* Pin */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (onToggleFavorite) onToggleFavorite(chat._id);
+                                                        setOpenMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                                >
+                                                    <Pin size={13} className="text-zinc-400" />
+                                                    Pin
+                                                </button>
+
+                                                {/* Delete */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onDeleteChat(chat._id);
+                                                        setOpenMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                                                >
+                                                    <Trash2 size={13} />
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        onSelectChat(chat._id);
-                                        onClose();
-                                    }}
-                                    className="
-                    min-w-0 flex-1
-                    px-2 py-2.5
-                    text-left
-                  "
-                                >
-                                    <span
-                                        className={`
-                        truncate
-                        text-xs
-                        ${activeChatId === chat._id
-                                            ? "font-semibold text-violet-700 dark:text-violet-300"
-                                            : "text-zinc-600 dark:text-zinc-400"
-                                        }
-                      `}
-                                    >
-                                        {chat.title ||
-                                            "New conversation"}
-                                    </span>
-                                </button>
-
-                                {/* Favorite button */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (onToggleFavorite) {
-                                            onToggleFavorite(chat._id);
-                                        }
-                                    }}
-                                    className={`
-                    h-7 w-7 items-center justify-center rounded-lg transition
-                    ${chat.isFavorite
-                                            ? "flex text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10"
-                                            : "hidden group-hover:flex text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-amber-500"
-                                        }
-                  `}
-                                    title={
-                                        chat.isFavorite
-                                            ? "Remove from favorites"
-                                            : "Add to favorites"
-                                    }
-                                >
-                                    <Star
-                                        size={13}
-                                        className={
-                                            chat.isFavorite
-                                                ? "fill-amber-400 text-amber-500"
-                                                : ""
-                                        }
-                                    />
-                                </button>
-
-                                {/* Delete button */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteChat(chat._id);
-                                    }}
-                                    className="
-                    mr-1
-                    hidden
-                    h-7 w-7
-                    items-center justify-center
-                    rounded-lg
-                    text-zinc-400
-                    hover:bg-red-50
-                    hover:text-red-500
-                    group-hover:flex
-
-                    dark:hover:bg-red-500/10
-                  "
-                                    title="Delete chat"
-                                >
-                                    <Trash2 size={13} />
-                                </button>
                             </div>
                         ))}
                     </div>
+                    )}
                 </div>
 
                 {/* Bottom */}
